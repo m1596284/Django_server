@@ -21,7 +21,7 @@ from youtube_search import YoutubeSearch
 pyPath = Path(__file__).parent.parent
 
 ## log setting
-log = py_logger("w",level="INFO", dir_path=f"{pyPath}/log",file_name="IU_line_bot")
+log = py_logger("a",level="INFO", dir_path=f"{pyPath}/log",file_name="IU_line_bot")
 
 ## Loading the access token and secret for line bot
 with open(f"{str(pyPath)}/line_bot_channel.json") as f:
@@ -230,20 +230,23 @@ def reply_IG(reply_token,chat_room,message_text):
             message_text = message_text.replace("/reel/","/p/")
         shortcode = message_text[28:message_text.find("/",28)]
         sub_page = f"https://www.instagram.com/p/{shortcode}/"
+        # log.info(sub_page)
         ## loging test
-        Login_test = "Fail"
-        while Login_test != "Pass":
+        Login_test = 0
+        print(headers_IG)
+        while Login_test != -1:
             try:
                 r = requests.get(sub_page,headers=headers_IG)
                 Login_test = r.text.find("Login • Instagram")
             except:
-                Login_test = "Pass"
+                Login_test = 0
+        # log.info(r.text)
         ## get IG_post_title
         IG_post_title = r.text[r.text.find("<title>")+7:r.text.find("</title>")]
         if len(IG_post_title) == 0:
             IG_post_title = "_"
         else:
-            IG_post_title = IG_post_title[IG_post_title.find("on Instagram:")+13:].replace("\n","")
+            IG_post_title = IG_post_title[IG_post_title.find(":")+2:].replace("\n","")
         ## get all picture
         url_list =[]
         start = 0
@@ -1442,7 +1445,9 @@ def line_bot_receive(request):
             reply_tiktok(reply_token,message_text)
         ## instagram
         elif message_text.find("instagram") != -1:
-            reply_IG(reply_token,chat_room,message_text)
+            if user_id == admin_id:
+                reply_IG(reply_token,chat_room,message_text)
+
         ## 5 picture of hasgtag on IG
         elif message_text[0:1] == "#" and message_text[1:] != "":
             message_text = message_text[1:]
