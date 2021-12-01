@@ -76,8 +76,10 @@ class Database:
         for thing in kwargs:
             if thing !="where":
                 values = f"{values}{thing}='{kwargs[thing]}',"
-        sql = f"UPDATE {self.table} SET {values[:-1]} WHERE {where};"
-        # log.debug(f"{sql}")
+        if where == "None":
+            sql = f"UPDATE {self.table} SET {values[:-1]};"
+        else:
+            sql = f"UPDATE {self.table} SET {values[:-1]} WHERE {where};"
         self._db.execute(sql)
         self._db.commit()
 

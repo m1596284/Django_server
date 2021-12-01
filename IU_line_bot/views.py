@@ -1080,7 +1080,7 @@ def hometown(reply_token,chat_room,message_text):
     if message_text[8:] == "":
         hometown_day_info_list = hometown_day_info_table.objects.get(id=0)
         line_bot_api.reply_message(reply_token,TextSendMessage(text=hometown_day_info_list.day_info))
-    elif message_text[9:] == "早班" or message_text[9:] == "中班" or message_text[9:] == "晚班":
+    elif message_text[9:] == "早班" or message_text[9:] == "中班" or message_text[9:] == "晚班" or message_text[9:] == "新進":
         shift_request = message_text[9:]
         hometown_info_list = hometown_info_table.objects.all().order_by("id")
         hometown_history_list = hometown_history_table.objects.all().order_by("id")
@@ -1134,14 +1134,6 @@ def hometown(reply_token,chat_room,message_text):
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{real_working_time}", size='sm'),
-                                ]
-                            ),
-                            SeparatorComponent(margin="md"),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
                                     TextComponent(text=f"{body_language}", size='sm'),
                                 ]
                             ),
@@ -1150,28 +1142,14 @@ def hometown(reply_token,chat_room,message_text):
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{introduction_1}", size='sm'),
+                                    TextComponent(text=f"{introduction}", size='sm',wrap=True),
                                 ]
                             ),
                             BoxComponent(
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{introduction_2}", size='sm'),
-                                ]
-                            ),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
-                                    TextComponent(text=f"{introduction_3}", size='sm'),
-                                ]
-                            ),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
-                                    TextComponent(text=f"{history_exp}", size='sm'),
+                                    TextComponent(text=f"{history_exp}", size='sm',wrap=True),
                                 ]
                             ),
                         ],
@@ -1247,14 +1225,6 @@ def hometown(reply_token,chat_room,message_text):
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{real_working_time}", size='sm'),
-                                ]
-                            ),
-                            SeparatorComponent(margin="md"),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
                                     TextComponent(text=f"{body_language}", size='sm'),
                                 ]
                             ),
@@ -1263,28 +1233,14 @@ def hometown(reply_token,chat_room,message_text):
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{introduction_1}", size='sm'),
+                                    TextComponent(text=f"{introduction}", size='sm'),
                                 ]
                             ),
                             BoxComponent(
                                 layout='baseline',
                                 margin="md",
                                 contents=[
-                                    TextComponent(text=f"{introduction_2}", size='sm'),
-                                ]
-                            ),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
-                                    TextComponent(text=f"{introduction_3}", size='sm'),
-                                ]
-                            ),
-                            BoxComponent(
-                                layout='baseline',
-                                margin="md",
-                                contents=[
-                                    TextComponent(text=f"{history_exp}", size='sm'),
+                                    TextComponent(text=f"{history_exp}", size='sm',wrap=True),
                                 ]
                             ),
                         ],
@@ -1371,6 +1327,51 @@ def yt_one(reply_token,message_text):
     video_url = f"https://www.youtube.com/watch?v={results[0]['id']}"
     line_bot_api.reply_message(reply_token,TextSendMessage(text=video_url))
 
+def reply_password_info(reply_token, message_text):
+    ## Loading the access token and secret for line bot
+    with open(f"{str(pyPath)}/notion_secrets.json") as f:
+        notion_secrets = json.load(f)
+    notion_token = notion_secrets["token"]
+
+    # set header
+    headers = {
+        "Authorization": "Bearer " + notion_token,
+        "Content-Type": "application/json",
+        "Notion-Version": "2021-08-16"
+    }
+    db_name = "password_database"
+    with open(f"{str(pyPath)}/notion_ID.json") as f:
+        notion_ID_json = json.load(f)
+        notion_ID = notion_ID_json[f"{db_name}"]
+    readUrl = f"https://api.notion.com/v1/databases/{notion_ID}/query"
+    r = requests.request("POST", readUrl, headers=headers)
+    # log.info(r.text)
+    r_json = r.json()
+    service = []
+    account = []
+    password = []
+    link= []
+    if message_text == "ALL":
+        line_bot_api.reply_message(reply_token,TextSendMessage(text=message_text))
+    else:
+        for item in r_json["results"]:
+            if message_text in item["properties"]["service"]["title"][0]["text"]["content"].upper():
+                service.append(item["properties"]["service"]["title"][0]["text"]["content"])
+                account.append(item["properties"]["account"]["rich_text"][0]["text"]["content"])
+                password.append(item["properties"]["password"]["rich_text"][0]["text"]["content"])
+                link.append(item["properties"]["link"]["rich_text"][0]["text"]["content"])
+                # log.info(item)
+        if len(service) != 0:
+            reply_text = ""
+            for num, thing in enumerate(service):
+                # print(link[num])
+                reply_text = f"{reply_text}{service[num]}\n{account[num]}\n{password[num]}\n{link[num]}\n\n"
+            line_bot_api.reply_message(reply_token,TextSendMessage(text=reply_text))
+        else:
+            reply_text = "empty"
+            line_bot_api.reply_message(reply_token,TextSendMessage(text=reply_text))
+
+
 ## main reply function
 def line_bot_receive(request):
     # print(request.body)
@@ -1445,8 +1446,8 @@ def line_bot_receive(request):
             reply_tiktok(reply_token,message_text)
         ## instagram
         elif message_text.find("instagram") != -1:
-            if user_id == admin_id:
-                reply_IG(reply_token,chat_room,message_text)
+            # if user_id == admin_id:
+            reply_IG(reply_token,chat_room,message_text)
 
         ## 5 picture of hasgtag on IG
         elif message_text[0:1] == "#" and message_text[1:] != "":
@@ -1533,34 +1534,56 @@ def line_bot_receive(request):
         elif message_text.upper() == "IU粉汁":
             if user_id in IU_fans_club and chat_room in IU_fans_club_chat_room:
                 IU_fans_info(reply_token)
-        ## test mode 
-        elif message_text.upper() == "TEST":
+        ## password table from notion
+        elif message_text[0:2].upper() == "PW":
             if user_id == admin_id and chat_room in IU_test:
-                # reply_9gag(reply_token, chat_room, message_text)
-                # output_url = ""
-                # picture_url = ""
-                # line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=output_url,preview_image_url=picture_url))
-                # line_bot_api.reply_message(reply_token,ImageSendMessage(original_content_url=output_url, preview_image_url=picture_url))
+                message_text = message_text[3:].upper()
+                reply_password_info(reply_token, message_text)
+        ## test mode 
+        elif message_text[0:4].upper() == "TEST":
+            if user_id == admin_id and chat_room in IU_test:
+                if len(message_text) == 4:
+                    output_url = "https://reurl.cc/n5b11l"
+                    picture_url = "https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/2d37a6e58fc9449697e11b7020ebce71?x-expires=1637582400&x-signature=LpQ3IyCem75eIw5ZW3B4Dbz29U8%3D"
+                    # reply_9gag(reply_token, chat_room, message_text)
+                    # output_url = ""
+                    # picture_url = ""
+                    # line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=output_url,preview_image_url=picture_url))
+                    # line_bot_api.reply_message(reply_token,ImageSendMessage(original_content_url=output_url, preview_image_url=picture_url))
+                    line_bot_api.reply_message(reply_token,TextSendMessage(text="Test Ok"))
+                    ### https://github.com/line/line-bot-sdk-python
+                    ## user name
+                    # user_id = ""
+                    # group_id = ""
+                    # profile = line_bot_api.get_profile('')
+                    # print(profile.display_name)
+                    # print(profile.user_id)
+                    # print(profile.picture_url)
+                    # print(profile.status_message)
+                    # profile = line_bot_api.get_group_member_profile(group_id, user_id)
+                    # print(profile.display_name)
+                    # print(profile.user_id)
+                    # print(profile.picture_url)
+                    # profile = line_bot_api.get_room_member_profile(room_id, user_id)
+                    # print(profile.display_name)
+                    # print(profile.user_id)
+                    # print(profile.picture_url)
+                else:
+                    message_text = message_text[5:]
+                    if message_text == ".":
+                        reply_text = ""
+                        for i in range(50):
+                            reply_text = f"{reply_text}.\n"
+                        line_bot_api.reply_message(reply_token,TextSendMessage(text=reply_text))
+            elif len(message_text) == 4:
                 line_bot_api.reply_message(reply_token,TextSendMessage(text="Test Ok"))
-                ### https://github.com/line/line-bot-sdk-python
-                ## user name
-                # user_id = ""
-                # group_id = ""
-                # profile = line_bot_api.get_profile('')
-                # print(profile.display_name)
-                # print(profile.user_id)
-                # print(profile.picture_url)
-                # print(profile.status_message)
-                # profile = line_bot_api.get_group_member_profile(group_id, user_id)
-                # print(profile.display_name)
-                # print(profile.user_id)
-                # print(profile.picture_url)
-                # profile = line_bot_api.get_room_member_profile(room_id, user_id)
-                # print(profile.display_name)
-                # print(profile.user_id)
-                # print(profile.picture_url)
+            elif message_text[5:] == ".":
+                reply_text = ""
+                for i in range(50):
+                    reply_text = f"{reply_text}.\n"
+                line_bot_api.reply_message(reply_token,TextSendMessage(text=reply_text))
             else:
-                line_bot_api.reply_message(reply_token,TextSendMessage(text="Test Ok"))
+                pass
         else:
             pass
     ### if image message
