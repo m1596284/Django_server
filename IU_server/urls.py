@@ -20,4 +20,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('line_bot_receive',include('IU_line_bot.urls')),
     path('MElist',include('MElist.urls')),
+    path('warehouse/',include('warehouse.urls')),
 ]

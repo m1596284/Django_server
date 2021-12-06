@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 import json
 import datetime
-from time import sleep
+from time import sleep, time
 from pathlib import Path
-from src.py_logging import py_logger
+from src.py_logging import py_logger, remove_old_log
 from django.shortcuts import render
 from django.http import HttpResponse,HttpResponseNotFound
 from .models import *
@@ -19,9 +19,11 @@ from youtube_search import YoutubeSearch
 
 ## the BASE_DIR of this django project
 pyPath = Path(__file__).parent.parent
+py_name = "IU_line_bot"
 
 ## log setting
-log = py_logger("a",level="INFO", dir_path=f"{pyPath}/log",file_name="IU_line_bot")
+remove_old_log(dir_path=f"{pyPath}/log",file_name=py_name)
+log = py_logger("a",level="INFO", dir_path=f"{pyPath}/log",file_name=py_name)
 
 ## Loading the access token and secret for line bot
 with open(f"{str(pyPath)}/line_bot_channel.json") as f:
@@ -125,7 +127,7 @@ def DB_update_chat_log(user_id,user_name,chat_room,message_text):
     pass
 
 def reply_help(reply_token):
-    help_message = "IU Line Bot v6.2 2021/11/18 " + "modify help information" + "\n" \
+    help_message = "IU Line Bot v6.3 2021/12/02 " + "fix tiktok" + "\n" \
         "IU : 隨機IU" + "\n" \
         "OO : 歐美" + "\n" \
         "CC : Cosplay" + "\n" \
@@ -211,14 +213,22 @@ def reply_douyin(reply_token,message_text):
     line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=output_url,preview_image_url=picture_url))
 
 def reply_tiktok(reply_token,message_text):
-    # error, get the video url but can't play on Line
     r = requests.get(message_text,headers=headers_tiktok)
     r_text = r.text
     video_url = r_text[r_text.find('playAddr')+11:r_text.find('downloadAddr')-3]
     video_url = video_url.encode('utf-8').decode("unicode_escape")
     picture_url = r_text[r_text.find('originCover')+14:r_text.find('dynamicCover')-3]
     picture_url = picture_url.encode('utf-8').decode("unicode_escape")
-    line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=video_url,preview_image_url=picture_url))
+    headers_tiktok_referer = {"referer":f"{video_url}"}
+    r = requests.get(video_url,headers=headers_tiktok_referer)
+    ts = str(time()).replace(".","")
+    temp_path = f"{pyPath}/media/tiktok/{ts}.mp4"
+    with open(temp_path, 'wb') as f: 
+        for chunk in r.iter_content(chunk_size = 1024*1024): 
+            if chunk: 
+                f.write(chunk) 
+    warehouse_url = f"https://iufans.club/warehouse/tiktok/{ts}"
+    line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=warehouse_url,preview_image_url=picture_url))
 
 def reply_IG(reply_token,chat_room,message_text):
     ## url preprocessing
@@ -1543,14 +1553,15 @@ def line_bot_receive(request):
         elif message_text[0:4].upper() == "TEST":
             if user_id == admin_id and chat_room in IU_test:
                 if len(message_text) == 4:
-                    output_url = "https://reurl.cc/n5b11l"
-                    picture_url = "https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/2d37a6e58fc9449697e11b7020ebce71?x-expires=1637582400&x-signature=LpQ3IyCem75eIw5ZW3B4Dbz29U8%3D"
+                    # output_url = f"{pyPath}/media/tiktok/test1.mp4"
+                    output_url = "https://iufans.club/warehouse/tiktok/1"
+                    picture_url = "https://i.imgur.com/4sDRcxn.jpg"
                     # reply_9gag(reply_token, chat_room, message_text)
                     # output_url = ""
                     # picture_url = ""
-                    # line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=output_url,preview_image_url=picture_url))
+                    line_bot_api.reply_message(reply_token,VideoSendMessage(original_content_url=output_url,preview_image_url=picture_url))
                     # line_bot_api.reply_message(reply_token,ImageSendMessage(original_content_url=output_url, preview_image_url=picture_url))
-                    line_bot_api.reply_message(reply_token,TextSendMessage(text="Test Ok"))
+                    # line_bot_api.reply_message(reply_token,TextSendMessage(text="Test Ok"))
                     ### https://github.com/line/line-bot-sdk-python
                     ## user name
                     # user_id = ""
