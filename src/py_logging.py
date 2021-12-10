@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 2021_1208 v1
 import logging
 import time
 import datetime
@@ -30,11 +31,16 @@ def py_logger(write_mode="a", level="DEBUG", dir_path="with_py_logging.py", file
 	else:
 		file_name = f"_{file_name}"
 	fileHandler = logging.FileHandler(f"{dir_path}/{log_date}{file_name}.log",f"{write_mode}","utf-8")
-	fileHandler.close()
 	# fileHandler.setLevel(logging.DEBUG)
 	fileHandler.setFormatter(formatter)
 	logger.addHandler(fileHandler)
 	return logger
+
+def close_log(arg_logger):
+	handlers = arg_logger.handlers[:]
+	for handler in handlers:
+		handler.close()
+		arg_logger.removeHandler(handler)
 
 def remove_old_log(dir_path="with_py_logging.py", file_name="None"):
 	if dir_path == "with_py_logging.py":

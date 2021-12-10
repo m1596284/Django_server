@@ -235,15 +235,15 @@ def reply_IG(reply_token,chat_room,message_text):
     if message_text[0:22] == "https://instagram.com/":
         message_text = f"https://www.{message_text[8:]}"
     ## picture, video of post
-    if  message_text[0:28] == "https://www.instagram.com/p/" or message_text[0:31] == "https://www.instagram.com/reel/": # Instagram
+    if "/p/" in message_text or "/reel/" in message_text: # Instagram
         if message_text[0:31] == "https://www.instagram.com/reel/":
             message_text = message_text.replace("/reel/","/p/")
-        shortcode = message_text[28:message_text.find("/",28)]
+        shortcode = message_text[message_text.find("/p/")+3:message_text.find("/",message_text.find("/p/")+3)]
         sub_page = f"https://www.instagram.com/p/{shortcode}/"
         # log.info(sub_page)
         ## loging test
         Login_test = 0
-        print(headers_IG)
+        # print(headers_IG)
         while Login_test != -1:
             try:
                 r = requests.get(sub_page,headers=headers_IG)
@@ -369,7 +369,7 @@ def reply_IG(reply_token,chat_room,message_text):
                 end = r.text.find('"video_view_count"',start)-2
                 url_video = r.text[start:end].replace("\\u0026","&")
                 line_bot_api.push_message(chat_room,VideoSendMessage(original_content_url=url_video,preview_image_url=picture_url))
-    ## picture, video  of story
+    ## picture, video of story
     elif  message_text[0:34] == "https://www.instagram.com/stories/": # IG time limit
         story_num = message_text[message_text.find("/",34)+1:message_text.find("?")]
         input_url = message_text[0:message_text.find("/",34)+1] + story_num
@@ -410,8 +410,7 @@ def reply_IG(reply_token,chat_room,message_text):
                 except:
                     pass
     ## video of TV
-    elif  message_text[0:29] == "https://www.instagram.com/tv/": # IG time limit
-        url_num = 5
+    elif "/tv/" in message_text: # IG time limit
         Main_page = message_text
         r=requests.get(Main_page,headers=headers_IG)
         start = 0
